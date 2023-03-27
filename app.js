@@ -1,72 +1,39 @@
-// jshint esversion: 6
+var port = process.env.PORT || 3000,
+    http = require('http'),
+    fs = require('fs'),
+    html = fs.readFileSync('index.html');
 
-const express = require("express");
-var bodyParser = require("body-parser");
-const app = express();
-const port =3000
-app.use(
-  bodyParser.urlencoded({
-    extended: true,
-  })
-);
+var log = function(entry) {
+    fs.appendFileSync('/tmp/sample-app.log', new Date().toISOString() + ' - ' + entry + '\n');
+};
 
-app.get("/", function (req, res) {
-  res.sendFile(__dirname + "/index.html");
+var server = http.createServer(function (req, res) {
+    if (req.method === 'POST') {
+        var body = '';
+
+        req.on('data', function(chunk) {
+            body += chunk;
+        });:
+
+        req.on('end', function() {
+            if (req.url === '/') {
+                log('Received message: ' + body);
+            } else if (req.url = '/scheduled') {
+                log('Received task ' + req.headers['x-aws-sqsd-taskname'] + ' scheduled at ' + req.headers['x-aws-sqsd-scheduled-at']);
+            }
+
+            res.writeHead(200, 'OK', {'Content-Type': 'text/plain'});
+            res.end();
+        });
+    } else {
+        res.writeHead(200);
+        res.write(html);
+        res.end();
+    }
 });
 
-app.post("/", function (req, res) {
-  let num1 = Number(req.body.num1);
-  let num2 = Number(req.body["num2"]);
-  let operator = "";
-  switch (req.body.operator) {
-    case "+":
-      operator = add;
-      break;
-    case "x":
-      operator = multiply;
-      break;
-    case "-":
-      operator = subtract;
-      break;
-    case "/":
-      operator = divide;
-      break;
-  }
-  console.log(calculator(num1, num2, operator));
-  res.send(`
-      <h2>
-     That was easy, your result is: ${calculator(num1, num2, operator)}
-    </h2>
-    <img src="https://image-repo-buraku.s3.eu-west-1.amazonaws.com/Lambda.png" alt="Lambda-Icon"class="center" width="10%" style="vertical-align:middle;margin:0px 100px">
-      <p>
-    There's no need for compliments </p>
-    <p>I already know i'm the smartest app in the world hahaha ;)</p>
-    <p>
-    By the way I'm running on a Lambda Function
-    </p>
-  
-  ` );
-});
+// Listen on port 3000, IP defaults to 127.0.0.1
+server.listen(port);
 
-
-function add(num1, num2) {
-  return num1 + num2;
-}
-
-function subtract(num1, num2) {
-  return num1 - num2;
-}
-
-function multiply(num1, num2) {
-  return num1 * num2;
-}
-function divide(num1, num2) {
-  return num1 / num2;
-}
-function calculator(num1, num2, operator) {
-  return operator(num1, num2);
-}
-
-app.listen(port, () => console.log(`calculator listening on port {port}!`))
-
-module.exports = app
+// Put a friendly message on the terminal
+console.log('Server running at http://127.0.0.1:' + port + '/');
